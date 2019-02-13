@@ -11446,7 +11446,7 @@ declare namespace p5 {
      *   @param [framesPerPeak] Defaults to 20.
      */
     constructor(freq1?: number, freq2?: number, threshold?: number, framesPerPeak?: number)
-    // TODO: Annotate attribute "isDetected", defined in lib/addons/p5.sound.js, line 11388
+    // TO DO: Annotate attribute "isDetected", defined in lib/addons/p5.sound.js, line 11388
     
     /**
      *   The update method is run in the draw loop. Accepts 
