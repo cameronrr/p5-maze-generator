@@ -7,7 +7,8 @@ const debug = true;
 const fps = 20;
 
 // define grid size
-const rows = cols = 10;
+const rows = 10;
+const cols = 10;
 const gridWidth = 500;
 const gridHeight = 500;
 
@@ -22,12 +23,11 @@ const cellWidth = gridWidth / cols;
 const cellHeight = gridHeight / rows;
 
 let grid = [];
-let activeCell;
+let activeCell, nextCell;
 
 let status = "generating";
 
 setup = () => {
-
     createCanvas(gridWidth, gridHeight);
 
     for (let y = 0; y < rows; y++) {
@@ -40,23 +40,27 @@ setup = () => {
 
     frameRate(fps);
     //noLoop();
-
 }
 
 draw = () => {
-
     background(55);
 
     // every update/frame, we will choose another cell
-    if (status == "generating") {
-        activeCell.chooseNextCell()
+    // debug will perform a step every frame, otherwise all at once
+    if (debug) {
+        if (status == "generating") {
+            activeCell.chooseNextCell()
+        }
+    } else {
+        while (status == "generating") {
+            activeCell.chooseNextCell()
+        }
     }
 
     // draw the state of each cell onto the canvas
     for (let i = 0; i < grid.length; i++) {
         grid[i].drawCell()
     }
-
 }
 
 class Cell {
@@ -83,14 +87,6 @@ class Cell {
 
     }
 
-    cellIndex = (x, y) => {
-        if (x < 0 || x >= cols || y < 0 || y >= rows) {
-            return null
-        } else {
-            return x + (y * cols)
-        }
-    }
-
     setStartingCell = () => {
         this.startingCell = true;
         this.visitedCell = true;
@@ -103,50 +99,37 @@ class Cell {
         let x = this.x;
         let y = this.y;
 
-        cells.push(grid[this.cellIndex(x, y - 1)]);
-        cells.push(grid[this.cellIndex(x, y + 1)]);
-        cells.push(grid[this.cellIndex(x - 1, y)]);
-        cells.push(grid[this.cellIndex(x + 1, y)]);
+        cells.push(grid[cellIndex(x, y - 1)]); // top
+        cells.push(grid[cellIndex(x, y + 1)]); // bottom
+        cells.push(grid[cellIndex(x - 1, y)]); // left
+        cells.push(grid[cellIndex(x + 1, y)]); // right
 
-        // keep truthy values (i.e. discard undefined) and not visited cells
-        return cells.filter( e => e && !e.visitedCell );
-   
+        // discard undefined values, and cells which have been visited
+        return cells.filter(e => e && !e.visitedCell);
     }
 
     chooseNextCell = () => {
-
-        let cells = this.getValidAdjacentCells();
+        let cells = this.getValidAdjacentCells()
 
         if (cells.length > 0) {
-
-            let cellIndex = Math.floor(Math.random() * cells.length)
-
-            //console.log(cells);
-            //console.log(cellIndex);            
-
-            for (let i = 0; i < cells.length; i++) {
-                if (i == cellIndex) {
-                    this.setNextActiveCell(cells[i])
-                } else {
-                    cells[i].candidateCell = true
-                }
-            }
-
+            cells.forEach(cell => cell.candidateCell = true);
+            nextCell = cells[Math.floor(Math.random() * cells.length)];
+            removeJoiningWall(activeCell, nextCell);
+            nextCell.setActive();
         } else {
             activeCell.endingCell = true;
-            status = "finished"
+            status = "finished";
+            return null;
         }
-
     }
 
-    setNextActiveCell = (cell) => {
-        cell.lastChosenCell = true;
-        cell.visitedCell = true;
-        activeCell = cell;
+    setActive = () => {
+        this.lastChosenCell = true;
+        this.visitedCell = true;
+        activeCell = this;
     }
 
     drawCell = () => {
-
         let x = this.x * cellWidth;
         let y = this.y * cellHeight;
 
@@ -166,8 +149,10 @@ class Cell {
             line(x + cellWidth, y, x + cellWidth, y + cellHeight)
         }
 
+        noStroke()
+
         // visual aid to track the various cell types and generator progress
-        if (debug) {
+        if (debug) {            
             if (this.startingCell) {
                 fill(0, 255, 0, 75);
                 rect(x, y, cellWidth, cellHeight)
@@ -187,9 +172,42 @@ class Cell {
         }
 
         // reset these values for the next update/frame
-        this.candidateCell = false
-        this.lastChosenCell = false
+        this.candidateCell = false;
+        this.lastChosenCell = false;
+    }
+}
 
-    };
+cellIndex = (x, y) => {
+    if (x < 0 || x >= cols || y < 0 || y >= rows) {
+        return null
+    } else {
+        return x + (y * cols)
+    }
+}
 
+removeJoiningWall = (cell1, cell2) => {
+    let deltaX = cell1.x - cell2.x; // movement on the x axis
+    let deltaY = cell1.y - cell2.y; // movement on the y axis
+
+    if (deltaX == 0) {
+        if (deltaY == 1) {
+            // cell2 is above cell1
+            cell1.walls.top = false;
+            cell2.walls.bottom = false;
+        } else {
+            // cell2 is below cell1
+            cell1.walls.bottom = false;
+            cell2.walls.top = false;
+        }
+    } else {
+        if (deltaX == 1) {
+            // cell2 is left of cell1
+            cell1.walls.left = false;
+            cell2.walls.right = false;
+        } else {
+            // cell2 is right of cell1
+            cell1.walls.right = false;
+            cell2.walls.left = false;
+        }
+    }
 }
