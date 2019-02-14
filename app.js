@@ -3,8 +3,8 @@
 // debug flag will control whether to show grid highlighting of each update
 const debug = true;
 
-// frames per second
-const fps = 20;
+// frames per second (use null for default frames)
+const fps = null;
 
 // define grid size
 const rows = 25;
@@ -30,6 +30,8 @@ let stack = [];
 let status = "generating";
 
 setup = () => {
+    frameRate(fps);
+
     createCanvas(gridWidth, gridHeight);
 
     for (let y = 0; y < rows; y++) {
@@ -38,17 +40,14 @@ setup = () => {
         }
     }
 
-    console.log(`Prepared ${cols}x${rows} grid (${grid.length} cells, each ${cellWidth}x${cellHeight})`);
-
-    frameRate(fps);
-    //noLoop();
+    console.log(`Prepared ${cols}x${rows} grid (${grid.length} cells, each ${cellWidth}x${cellHeight})`);    
 }
 
 draw = () => {
     background(55);
 
-    // every update/frame, we will choose another cell
-    // debug will perform a step every frame, otherwise all at once
+    // debug will perform one step each frame using 'if'
+    // as opposed to running the entire algorithm using 'while'
     if (debug) {
         if (status == "generating") {
             activeCell.chooseNextCell()
@@ -66,7 +65,6 @@ draw = () => {
 }
 
 class Cell {
-
     constructor(x, y) {
         this.x = x;
         this.y = y;
@@ -85,7 +83,6 @@ class Cell {
         if (!activeCell && this.x == startingCell.x && this.y == startingCell.y) {
             this.setStartingCell()
         }
-
     }
 
     addCellToStack = () => {
@@ -128,7 +125,6 @@ class Cell {
             nextCell.setActive();
         } else {
             status = "finished";
-            return null;
         }
     }
 
@@ -158,10 +154,9 @@ class Cell {
             line(x + cellWidth, y, x + cellWidth, y + cellHeight)
         }
 
-        noStroke()
-
         // visual aid to track the various cell types and generator progress
-        if (debug) {            
+        if (debug) {
+            noStroke()
             if (this.startingCell) {
                 fill(0, 255, 0, 75);
                 rect(x, y, cellWidth, cellHeight)
@@ -184,11 +179,7 @@ class Cell {
 }
 
 cellIndex = (x, y) => {
-    if (x < 0 || x >= cols || y < 0 || y >= rows) {
-        return null
-    } else {
-        return x + (y * cols)
-    }
+    return x < 0 || x >= cols || y < 0 || y >= rows ? null : x + (y * cols);
 }
 
 removeJoiningWall = (cell1, cell2) => {
