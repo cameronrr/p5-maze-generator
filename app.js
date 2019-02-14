@@ -7,8 +7,8 @@ const debug = true;
 const fps = 20;
 
 // define grid size
-const rows = 10;
-const cols = 10;
+const rows = 25;
+const cols = 25;
 const gridWidth = 500;
 const gridHeight = 500;
 
@@ -24,6 +24,8 @@ const cellHeight = gridHeight / rows;
 
 let grid = [];
 let activeCell, nextCell;
+
+let stack = [];
 
 let status = "generating";
 
@@ -75,7 +77,6 @@ class Cell {
             right: true
         };
         this.startingCell = false;
-        this.endingCell = false;
         this.visitedCell = false;
         this.candidateCell = false;
         this.lastChosenCell = false;
@@ -87,9 +88,14 @@ class Cell {
 
     }
 
+    addCellToStack = () => {
+        stack.push(this);
+    }
+
     setStartingCell = () => {
         this.startingCell = true;
         this.visitedCell = true;
+        this.addCellToStack();
         activeCell = this;
     }
 
@@ -115,9 +121,12 @@ class Cell {
             cells.forEach(cell => cell.candidateCell = true);
             nextCell = cells[Math.floor(Math.random() * cells.length)];
             removeJoiningWall(activeCell, nextCell);
+            nextCell.addCellToStack();
+            nextCell.setActive();
+        } else if (stack.length > 0) {
+            nextCell = stack.pop();
             nextCell.setActive();
         } else {
-            activeCell.endingCell = true;
             status = "finished";
             return null;
         }
@@ -155,9 +164,6 @@ class Cell {
         if (debug) {            
             if (this.startingCell) {
                 fill(0, 255, 0, 75);
-                rect(x, y, cellWidth, cellHeight)
-            } else if (this.endingCell) {
-                fill(255, 0, 0, 75);
                 rect(x, y, cellWidth, cellHeight)
             } else if (this.lastChosenCell) {
                 fill(255, 0, 0, 75);
